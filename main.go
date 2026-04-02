@@ -14,29 +14,40 @@ func main() {
 		return
 	}
 	defer file.Close()
+	for line := range getLinesChannel(file) {
+		fmt.Printf("Read: %s\n", line)
+	}
+}
 
+func getLinesChannel(file io.ReadCloser) <-chan string {
 	buffer := make([]byte, 8)
 	currentLine := ""
-	for {
-		chunk, err := file.Read(buffer)
+	out := make(chan string)
+	go func() {
+		defer close(out)
+		for {
+			chunk, err := file.Read(buffer)
 
-		if chunk > 0 {
-			parts := strings.Split(string(buffer[:chunk]), "\n")
-			for i := 0; i < len(parts)-1; i++ {
-				fmt.Printf("read: %s\n", currentLine+parts[i])
-				currentLine = ""
+			if chunk > 0 {
+				parts := strings.Split(string(buffer[:chunk]), "\n")
+				for i := 0; i < len(parts)-1; i++ {
+					fmt.Printf("read: %s\n", currentLine+parts[i])
+					currentLine = ""
+				}
+				currentLine += parts[len(parts)-1]
 			}
-			currentLine += parts[len(parts)-1]
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
 		}
-		if err == io.EOF {
-			break
+		if currentLine != "" {
+			out <- currentLine
 		}
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-	}
-	if currentLine != "" {
-		fmt.Printf("read: %s\n", currentLine)
-	}
+	}()
+	return out
+
 }
