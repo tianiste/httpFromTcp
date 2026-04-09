@@ -53,28 +53,41 @@ func (request *Request) parse(data []byte) (int, error) {
 }
 
 func RequestFromReader(reader io.Reader) (*Request, int, error) {
-	file, err := io.ReadAll(reader)
-	if err != nil {
-		return &Request{}, 0, err
+	req := &Request{ParserState: parserStateRequestLine}
+	buffer := make([]byte, 8)
+	readPos := 0
+	parsedPos := 0
+	totalParsed := 0
+	for req.ParserState != parserStateDone {
+		if readPos == len(buffer) && parsedPos > 0 {
+			copy(buffer, buffer[parsedPos:readPos])
+			readPos -= parsedPos
+			parsedPos = 0
+		}
 	}
-	if !strings.Contains(string(file), "\r\n") {
-		return &Request{}, 0, fmt.Errorf("no \r\n yet")
-	}
-	splitFile := strings.Split(string(file), "\r\n")
-	if len(splitFile) == 0 || splitFile[0] == "" {
-		return &Request{}, 0, fmt.Errorf("empty request line")
-	}
-	splitLine := strings.Split(splitFile[0], " ")
-	reqLine, err := parseRequestLine(splitLine)
-	if err != nil {
-		return &Request{}, 0, err
-	}
-	consumed := len(splitFile[0]) + len("\r\n")
 
-	return &Request{
-		RequestLine: *reqLine,
-	}, consumed, nil
-
+	// file, err := io.ReadAll(reader)
+	// if err != nil {
+	// 	return &Request{}, 0, err
+	// }
+	// if !strings.Contains(string(file), "\r\n") {
+	// 	return &Request{}, 0, fmt.Errorf("no \r\n yet")
+	// }
+	// splitFile := strings.Split(string(file), "\r\n")
+	// if len(splitFile) == 0 || splitFile[0] == "" {
+	// 	return &Request{}, 0, fmt.Errorf("empty request line")
+	// }
+	// splitLine := strings.Split(splitFile[0], " ")
+	// reqLine, err := parseRequestLine(splitLine)
+	// if err != nil {
+	// 	return &Request{}, 0, err
+	// }
+	// consumed := len(splitFile[0]) + len("\r\n")
+	//
+	// return &Request{
+	// 	RequestLine: *reqLine,
+	// }, consumed, nil
+	//
 }
 
 func parseRequestLine(splitLine []string) (*RequestLine, error) {
